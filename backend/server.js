@@ -2,10 +2,13 @@ import express from 'express';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
+import cors from 'cors';
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 
 // Connect to MongoDB
 connectDB();
