@@ -1,82 +1,122 @@
-// src/screens/LoginScreen.jsx
-import { useState } from 'react';
-import { loginWithEmail, loginWithPhoneOtp, requestPhoneOtp } from '../api/userApi';
+/* eslint-disable no-unused-vars */
+import  { useState } from 'react';
+// import { useNavigate } from 'react-router-dom';
+// import { useDispatch } from 'react-redux';
+// import { loginUser } from '../slices/authSlice'; // Assuming an authSlice for handling authentication actions
+import '../styles/LoginScreen.css';
+import { loginUser, registerUser, verifyRegisterOtp } from '../slices/api'; 
+import { useNavigate } from 'react-router-dom';
 
-const LoginScreen = () => {
-  const [isEmailLogin, setIsEmailLogin] = useState(true);
+function LoginScreen() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpRequested, setOtpRequested] = useState(false);
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const navigate = useNavigate(); // Initialize useNavigate
+  const [showOtpField, setShowOtpField] = useState(false);
+  const [otp, setOtp] = useState(''); // OTP field
+//   const dispatch = useDispatch();
+//   const navigate = useNavigate();
 
-  const toggleLoginMethod = () => setIsEmailLogin(!isEmailLogin);
-
-  const submitHandler = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent the default form submission
+    setMessage('');
     try {
-      if (isEmailLogin) {
-        // Email login
-        await loginWithEmail(email, password);
-        alert('Login successful!');
-      } else if (otpRequested) {
-        // OTP login
-        await loginWithPhoneOtp(phone, otp);
-        alert('Login successful!');
-      } else {
-        // Request OTP
-        await requestPhoneOtp(phone);
-        setOtpRequested(true);
+        if (isLogin) {
+          const data = await loginUser(email, password);
+          // console.log("Login successful:", data);
+          setMessage("Login successful!");
+          navigate('/home');
+        } else {
+          if (!showOtpField) {
+            // Step 1: Initiate registration by sending OTP
+            const data = await registerUser(name, phone, email, password);
+            setMessage("OTP sent to phone. Please enter it to complete registration.");
+            setShowOtpField(true); // Display OTP field
+          } else {
+            // Step 2: Verify OTP to complete registration
+            const data = await verifyRegisterOtp(phone, otp);
+            setMessage("Registration successful!");
+            navigate('/home');
+          }
+        }
+      } catch (error) {
+        console.error(error);
+        setMessage("An error occurred. Please try again.");
       }
-    } catch (error) {
-      console.error('Error during login:', error);
-    }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={submitHandler}>
-        {isEmailLogin ? (
-          <>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </>
-        ) : (
-          <>
+    <div className="login-container">
+      <h2>{isLogin ? 'Login' : 'Register'}</h2>
+      <form onSubmit={handleSubmit}>
+      {!isLogin && !showOtpField && (
+        <>
+          <div>
+            <label>Name:</label>
             <input
               type="text"
-              placeholder="Phone Number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-            {otpRequested && (
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required />
+
+          </div>
+          <div>
+              <label>Phone Number:</label> {/* Additional Phone number field */}
               <input
                 type="text"
-                placeholder="OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-              />
-            )}
-          </>
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required />
+          </div>
+        </>
+          
+          
         )}
-        <button type="submit">{isEmailLogin || otpRequested ? 'Login' : 'Request OTP'}</button>
+        <div>
+          <label>Email</label>
+          <input
+            type="text"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        {showOtpField && (
+          <div>
+            <label>OTP:</label>
+            <input
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              required
+            />
+          </div>
+        )}
+        <button type="submit">{isLogin ? 'Login' : showOtpField ? 'Verify OTP' : 'Register'}</button>
+        {/* <button type="submit">{isLogin ? 'Login' : 'Register'}</button> */}
       </form>
-      <button onClick={toggleLoginMethod}>
-        {isEmailLogin ? 'Use Phone/OTP' : 'Use Email/Password'}
+      {message && <p>{message}</p>} {/* Display success/error message */}
+      <button
+        type="button"
+        onClick={() => setIsLogin(!isLogin)}
+        className="toggle-button"
+      >
+        {isLogin ? 'Switch to Register' : 'Switch to Login'}
       </button>
     </div>
   );
-};
+}
 
 export default LoginScreen;
